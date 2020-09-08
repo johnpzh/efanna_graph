@@ -268,7 +268,13 @@ void IndexGraph::Build(size_t n, const float *data, const Parameters &parameters
   data_ = data;
   assert(initializer_->HasBuilt());
 
+    {
+        printf("Initializing...\n");
+    }
   InitializeGraph(parameters);
+    {
+        printf("NNDescenting...\n");
+    }
   NNDescent(parameters);
   //RefineGraph(parameters);
 

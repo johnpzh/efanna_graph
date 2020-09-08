@@ -1,0 +1,8 @@
+### cmake dir
+cmake-build-*/
+
+### Folder
+.idea/
+
+###
+.DS_Store
