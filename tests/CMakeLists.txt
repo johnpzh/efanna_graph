@@ -11,3 +11,6 @@ target_link_libraries(test_kdtree_graph ${PROJECT_NAME})
 
 add_executable(test_faiss_graph test_faiss_graph.cpp)
 target_link_libraries(test_faiss_graph ${PROJECT_NAME} faiss ${BLAS_LIB})
+
+add_executable(test_nndescent_bvecs test_nndescent_bvecs.cpp)
+target_link_libraries(test_nndescent_bvecs ${PROJECT_NAME})
