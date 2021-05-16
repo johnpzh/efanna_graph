@@ -1,10 +1,12 @@
 //
 // Created by 付聪 on 2017/6/21.
+// Modified by Zhen Peng
 //
 
 #include <efanna2e/index_graph.h>
 #include <efanna2e/index_random.h>
 #include <efanna2e/util.h>
+#include <omp.h>
 
 
 void load_data(char* filename, float*& data, unsigned& num,unsigned& dim){// load data with sift10K pattern
@@ -17,8 +19,10 @@ void load_data(char* filename, float*& data, unsigned& num,unsigned& dim){// loa
   size_t fsize = (size_t)ss;
   num = (unsigned)(fsize / (dim+1) / 4);
   uint64_t data_bytes = sizeof(float) * static_cast<uint64_t>(num) * static_cast<uint64_t>(dim);
-  std::cout << "data_bytes: " << data_bytes << std::endl;
-  data = new float[data_bytes];
+//  std::cout << "data_bytes: " << data_bytes << std::endl;
+  printf("data_bytes: %lu (%luGB)\n", data_bytes, data_bytes >> 30);
+  data = (float *) malloc(data_bytes);
+//  data = new float[data_bytes];
 //  data = new float[num * dim * sizeof(float)];
 
   in.seekg(0,std::ios::beg);
@@ -29,8 +33,11 @@ void load_data(char* filename, float*& data, unsigned& num,unsigned& dim){// loa
   in.close();
 }
 int main(int argc, char** argv){
-  if(argc!=8){std::cout<< argv[0] <<" data_file save_graph K L iter S R"<<std::endl; exit(-1);}
-  float* data_load = NULL;
+  if(argc!=9) {
+      std::cout<< argv[0] <<" data_file save_graph K L iter S R num_t"<<std::endl;
+      exit(-1);
+  }
+  float* data_load = nullptr;
   unsigned points_num, dim;
   load_data(argv[1], data_load, points_num, dim);
   char* graph_filename = argv[2];
@@ -39,6 +46,8 @@ int main(int argc, char** argv){
   unsigned iter = (unsigned)atoi(argv[5]);
   unsigned S = (unsigned)atoi(argv[6]);
   unsigned R = (unsigned)atoi(argv[7]);
+  unsigned num_t = strtoull(argv[8], nullptr, 0);
+  omp_set_num_threads(num_t);
   //data_load = efanna2e::data_align(data_load, points_num, dim);//one must align the data before build
   efanna2e::IndexRandom init_index(dim, points_num);
   efanna2e::IndexGraph index(dim, points_num, efanna2e::L2, (efanna2e::Index*)(&init_index));
@@ -51,6 +60,7 @@ int main(int argc, char** argv){
   paras.Set<unsigned>("R", R);
 
   auto s = std::chrono::high_resolution_clock::now();
+  printf("Building...\n");
   index.Build(points_num, data_load, paras);
   auto e = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> diff = e-s;
@@ -58,5 +68,6 @@ int main(int argc, char** argv){
 
   index.Save(graph_filename);
 
+  free(data_load);
   return 0;
 }

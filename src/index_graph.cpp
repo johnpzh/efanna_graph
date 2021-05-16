@@ -125,7 +125,9 @@ void IndexGraph::NNDescent(const Parameters &parameters) {
   std::vector<unsigned> control_points(_CONTROL_NUM);
   std::vector<std::vector<unsigned> > acc_eval_set(_CONTROL_NUM);
   GenRandom(rng, &control_points[0], control_points.size(), nd_);
+  printf("NNDesent:generate_control_set ...\n");
   generate_control_set(control_points, acc_eval_set, nd_);
+  printf("NNDesent:join and update ...\n");
   for (unsigned it = 0; it < iter; it++) {
     join();
     update(parameters);
@@ -138,7 +140,13 @@ void IndexGraph::NNDescent(const Parameters &parameters) {
 void IndexGraph::generate_control_set(std::vector<unsigned> &c,
                                       std::vector<std::vector<unsigned> > &v,
                                       unsigned N){
-#pragma omp parallel for
+/*
+ * Here the parallel for loop requires a large memory footprint, especially when
+ * N is 1 billion.
+ * So a small number of threads is used here.
+ */
+#pragma omp parallel for num_threads(16)
+//#pragma omp parallel for
   for(unsigned i=0; i<c.size(); i++){
     std::vector<Neighbor> tmp;
     for(unsigned j=0; j<N; j++){
@@ -278,6 +286,7 @@ void IndexGraph::Build(size_t n, const float *data, const Parameters &parameters
   NNDescent(parameters);
   //RefineGraph(parameters);
 
+  printf("Final...\n");
   final_graph_.reserve(nd_);
   std::cout << nd_ << std::endl;
   unsigned K = parameters.Get<unsigned>("K");
