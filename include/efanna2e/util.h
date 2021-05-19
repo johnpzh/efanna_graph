@@ -8,6 +8,7 @@
 #include <iostream>
 #include <cstring>
 #include <algorithm>
+#include <unistd.h>
 #ifdef __APPLE__
 #else
 #include <malloc.h>
@@ -65,6 +66,51 @@ namespace efanna2e {
       #endif
       return data_new;
     }
+
+    /*
+     * by johnpzh
+     */
+    class Mem {
+    public:
+        /**
+         * reference: https://github.com/nmslib/hnswlib/blob/master/sift_1b.cpp
+         * @return memory footprint in bytes.
+         */
+        static size_t getCurrentRSS() {
+    #if defined(_WIN32)
+            /* Windows -------------------------------------------------- */
+        PROCESS_MEMORY_COUNTERS info;
+        GetProcessMemoryInfo(GetCurrentProcess(), &info, sizeof(info));
+        return (size_t)info.WorkingSetSize;
+
+    #elif defined(__APPLE__) && defined(__MACH__)
+            /* OSX ------------------------------------------------------ */
+        struct mach_task_basic_info info;
+        mach_msg_type_number_t infoCount = MACH_TASK_BASIC_INFO_COUNT;
+        if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO,
+            (task_info_t)&info, &infoCount) != KERN_SUCCESS)
+            return (size_t)0L;      /* Can't access? */
+        return (size_t)info.resident_size;
+
+    #elif defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
+            /* Linux ---------------------------------------------------- */
+            long rss = 0L;
+            FILE *fp = nullptr;
+            if ((fp = fopen("/proc/self/statm", "r")) == nullptr)
+                return (size_t) 0L;      /* Can't open? */
+            if (fscanf(fp, "%*s%ld", &rss) != 1) {
+                fclose(fp);
+                return (size_t) 0L;      /* Can't read? */
+            }
+            fclose(fp);
+            return (size_t) rss * (size_t) sysconf(_SC_PAGESIZE);
+
+    #else
+            /* AIX, BSD, Solaris, and Unknown OS ------------------------ */
+        return (size_t)0L;          /* Unsupported. */
+    #endif
+        }
+    };
 
 }
 

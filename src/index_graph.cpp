@@ -133,7 +133,8 @@ void IndexGraph::NNDescent(const Parameters &parameters) {
     update(parameters);
     //checkDup();
     eval_recall(control_points, acc_eval_set);
-    std::cout << "iter: " << it << std::endl;
+//    std::cout << "iter: " << it << std::endl;
+    printf("iter: %u mem(GB): %lu\n", it, Mem::getCurrentRSS()>>30);
   }
 }
 
@@ -141,11 +142,13 @@ void IndexGraph::generate_control_set(std::vector<unsigned> &c,
                                       std::vector<std::vector<unsigned> > &v,
                                       unsigned N){
 /*
+ * by johnpzh
  * Here the parallel for loop requires a large memory footprint, especially when
  * N is 1 billion.
  * So a small number of threads is used here.
+ * Or even just use a single thread for safety concerns.
  */
-#pragma omp parallel for num_threads(16)
+//#pragma omp parallel for num_threads(16)
 //#pragma omp parallel for
   for(unsigned i=0; i<c.size(); i++){
     std::vector<Neighbor> tmp;
@@ -157,6 +160,11 @@ void IndexGraph::generate_control_set(std::vector<unsigned> &c,
     for(unsigned j=0; j<_CONTROL_NUM; j++){
       v[i].push_back(tmp[j].id);
     }
+      {//test
+          if ((i & 0xF) == 0) {
+              printf("generate_control_set:i:%u mem(GB): %lu\n", i, Mem::getCurrentRSS()>>30);
+          }
+      }
   }
 }
 
@@ -205,6 +213,12 @@ void IndexGraph::InitializeGraph(const Parameters &parameters) {
     }
     std::make_heap(graph_[i].pool.begin(), graph_[i].pool.end());
     graph_[i].pool.reserve(L);
+
+      {//test
+          if ((i & 0x1FFFFFF) == 0) {
+              printf("initialize:i:%u mem(GB): %lu\n", i, Mem::getCurrentRSS()>>30);
+          }
+      }
   }
 }
 
@@ -288,7 +302,8 @@ void IndexGraph::Build(size_t n, const float *data, const Parameters &parameters
 
   printf("Final...\n");
   final_graph_.reserve(nd_);
-  std::cout << nd_ << std::endl;
+//  std::cout << nd_ << std::endl;
+    printf("final_graph.reserve:nd_: %lu mem(GB): %lu\n", nd_, Mem::getCurrentRSS()>>30);
   unsigned K = parameters.Get<unsigned>("K");
   for (unsigned i = 0; i < nd_; i++) {
     std::vector<unsigned> tmp;
@@ -303,6 +318,11 @@ void IndexGraph::Build(size_t n, const float *data, const Parameters &parameters
     std::vector<unsigned>().swap(graph_[i].nn_old);
     std::vector<unsigned>().swap(graph_[i].rnn_new);
     std::vector<unsigned>().swap(graph_[i].rnn_new);
+      {//test
+          if ((i & 0x11FFFFFF) == 0) {
+              printf("final_graph:i:%u mem(GB): %lu\n", i, Mem::getCurrentRSS()>>30);
+          }
+      }
   }
   std::vector<nhood>().swap(graph_);
   has_built = true;
